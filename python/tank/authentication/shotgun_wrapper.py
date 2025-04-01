@@ -15,10 +15,10 @@ not be called directly. Interfaces and implementation of this module may change
 at any point.
 --------------------------------------------------------------------------------
 """
-from tank_vendor.six.moves import http_client
+import http.client as http_client
 
-from tank_vendor.shotgun_api3 import Shotgun, AuthenticationFault
-from tank_vendor.six.moves.xmlrpc_client import ProtocolError
+from shotgun_api3 import Shotgun, AuthenticationFault
+from xmlrpc.client import ProtocolError
 from . import interactive_authentication, session_cache
 from .. import LogManager
 

@@ -174,8 +174,13 @@ class QtImporter(object):
         # throw an import error which will be handled by the calling code. Note that PySide2 can be
         # imported even if the Qt binaries are missing, so it's better to try importing QtCore for
         # testing.
-        from PySide2 import QtCore
-        import shiboken2
+
+        try:
+            from PopQt.Pyside2 import QtCore
+            from PopQt import shiboken2  # Dreamlight-pipeline specific
+        except ImportError:
+            from PySide2 import QtCore
+            import shiboken2
 
         # List of all Qt 5 modules.
         sub_modules = [
@@ -234,76 +239,16 @@ class QtImporter(object):
                 logger.debug("'%s' was skipped: %s", module_name, e)
                 pass
 
-        import PySide2
+        try:
+            from PopQt import PySide2  # Dreamlight-pipeline specific
+        except ImportError:
+            import PySide2
 
         return (
             PySide2.__name__,
             PySide2.__version__,
             PySide2,
             modules_dict,
-            self._to_version_tuple(QtCore.qVersion()),
-        )
-
-    def _import_pyside2_as_pyside(self):
-        """
-        Imports PySide2.
-
-        :returns: The (binding name, binding version, modules) tuple.
-        """
-        import PySide2
-        from PySide2 import QtCore, QtGui, QtWidgets
-        import shiboken2
-        from .pyside2_patcher import PySide2Patcher
-
-        QtCore, QtGui = PySide2Patcher.patch(QtCore, QtGui, QtWidgets, PySide2)
-        QtNetwork = self._import_module_by_name("PySide2", "QtNetwork")
-        QtWebKit = self._import_module_by_name("PySide2.QtWebKitWidgets", "QtWebKit")
-        QtWebEngineWidgets = self._import_module_by_name(
-            "PySide2.QtWebEngineWidgets", "QtWebEngineWidgets"
-        )
-
-        return (
-            "PySide2",
-            PySide2.__version__,
-            PySide2,
-            {
-                "QtCore": QtCore,
-                "QtGui": QtGui,
-                "QtNetwork": QtNetwork,
-                "QtWebKit": QtWebKit,
-                "QtWebEngineWidgets": QtWebEngineWidgets,
-                "shiboken": shiboken2,
-            },
-            self._to_version_tuple(QtCore.qVersion()),
-        )
-
-    def _import_pyside6_as_pyside(self):  # pragma: no cover
-        """
-        Import PySide6 and expose its modules through the Qt4 (PySide) interface.
-
-        :returns: The (binding name, binding version, modules) tuple.
-        """
-
-        import PySide6
-        import shiboken6
-        from .pyside6_patcher import PySide6Patcher
-
-        QtCore, QtGui, QtWebEngineWidgets = PySide6Patcher.patch()
-        QtNetwork = self._import_module_by_name("PySide6", "QtNetwork")
-        QtWebKit = self._import_module_by_name("PySide6.QtWebKitWidgets", "QtWebKit")
-
-        return (
-            PySide6.__name__,
-            PySide6.__version__,
-            PySide6,
-            {
-                "QtCore": QtCore,
-                "QtGui": QtGui,
-                "QtNetwork": QtNetwork,
-                "QtWebKit": QtWebKit,
-                "QtWebEngineWidgets": QtWebEngineWidgets,
-                "shiboken": shiboken6,
-            },
             self._to_version_tuple(QtCore.qVersion()),
         )
 
@@ -314,8 +259,11 @@ class QtImporter(object):
         :returns: The (binding name, binding version, modules) tuple.
         """
 
-        import PySide6
-        import shiboken6
+        try:
+            from PopQt import PySide6, shiboken6
+        except ImportError:
+            import PySide6
+            import shiboken6
 
         sub_modules = pkgutil.iter_modules(PySide6.__path__)
         modules_dict = {}
@@ -365,31 +313,12 @@ class QtImporter(object):
         """
 
         interface = {
-            self.QT4: "Qt4",
             self.QT5: "Qt5",
             self.QT6: "Qt6",
         }.get(interface_version_requested)
         logger.debug("Requesting %s-like interface", interface)
 
-        if interface_version_requested == self.QT4:
-            # First, try PySide 2 since Toolkit ships with PySide2.
-            try:
-                pyside2 = self._import_pyside2_as_pyside()
-                logger.debug("Imported PySide2 as PySide.")
-                return pyside2
-            except ImportError:
-                pass
-
-            # Last attempt, try PySide6. PySide6 is not yet fully supported but allow DCCs that
-            # require PySide6 to run with the current support
-            try:
-                pyside6 = self._import_pyside6_as_pyside()
-                logger.debug("Imported PySide6 as PySide.")
-                return pyside6
-            except ImportError:
-                pass
-
-        elif interface_version_requested == self.QT5:
+        if interface_version_requested == self.QT5:
             try:
                 pyside2 = self._import_pyside2()
                 logger.debug("Imported PySide2.")

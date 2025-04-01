@@ -19,18 +19,17 @@ at any point.
 """
 import os
 import sys
-from tank_vendor import shotgun_api3
+import shotgun_api3
 from .. import constants
 from .web_login_support import get_shotgun_authenticator_support_web_login
 from .ui import resources_rc  # noqa
 from .ui import login_dialog
 from . import constants as auth_constants
 from . import session_cache
-from ..util.metrics import EventMetric
 from ..util.shotgun import connection
 from ..util import login
 from ..util import LocalFileStorageManager
-from ..util import metrics_cache
+# from ..util import metrics_cache
 from .errors import AuthenticationError
 from .ui.qt_abstraction import (
     QtGui,
@@ -50,10 +49,7 @@ from .sso_saml2 import (
 
 from .. import LogManager
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
+from shotgun_api3.lib.six import ensure_str, ensure_binary
 
 logger = LogManager.get_logger(__name__)
 
@@ -392,7 +388,7 @@ class LoginDialog(QtGui.QDialog):
 
         :returns: The site to connect to.
         """
-        return sgutils.ensure_str(
+        return ensure_str(
             connection.sanitize_url(self.ui.site.currentText().strip())
         )
 
@@ -402,7 +398,7 @@ class LoginDialog(QtGui.QDialog):
 
         :returns: The login to use for authentication.
         """
-        return sgutils.ensure_str(self.ui.login.currentText().strip())
+        return ensure_str(self.ui.login.currentText().strip())
 
     def _update_ui_according_to_site_support(self):
         """
@@ -696,16 +692,16 @@ class LoginDialog(QtGui.QDialog):
         if res != QtGui.QDialog.Accepted:
             return
 
-        metrics_cache.log(
-            EventMetric.GROUP_TOOLKIT,
-            "Logged In",
-            properties={
-                "authentication_method": self.site_info.user_authentication_method,
-                "authentication_experience": auth_constants.method_resolve.get(self.method_selected),
-                "authentication_interface": "qt_dialog",
-                "authentication_renewal": self._is_session_renewal,
-            },
-        )
+        # metrics_cache.log(
+        #     EventMetric.GROUP_TOOLKIT,
+        #     "Logged In",
+        #     properties={
+        #         "authentication_method": self.site_info.user_authentication_method,
+        #         "authentication_experience": auth_constants.method_resolve.get(self.method_selected),
+        #         "authentication_interface": "qt_dialog",
+        #         "authentication_renewal": self._is_session_renewal,
+        #     },
+        # )
 
         if self.method_selected == auth_constants.METHOD_ASL:
             if not self._asl_task:

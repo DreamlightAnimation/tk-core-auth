@@ -28,16 +28,14 @@ from .errors import (
     AuthenticationCancelled,
     ConsoleLoginNotSupportedError,
 )
-from tank_vendor.shotgun_api3 import MissingTwoFactorAuthenticationFault
+from shotgun_api3 import MissingTwoFactorAuthenticationFault
 from . import site_info
 from . import app_session_launcher
-from ..util import metrics_cache
-from ..util.metrics import EventMetric
+# from ..util import metrics_cache
 from ..util.shotgun.connection import sanitize_url
 
 from getpass import getpass
 import webbrowser
-from tank_vendor.six.moves import input
 
 logger = LogManager.get_logger(__name__)
 
@@ -101,20 +99,20 @@ class ConsoleAuthenticationHandlerBase(object):
                 print()
                 raise error
 
-            metrics_cache.log(
-                EventMetric.GROUP_TOOLKIT,
-                "Logged In",
-                properties={
-                    "authentication_method": site_i.user_authentication_method,
-                    "authentication_experience": constants.method_resolve.get(
-                        method_selected
-                    ),
-                    "authentication_interface": "console",
-                    "authentication_renewal": isinstance(
-                        self, ConsoleRenewSessionHandler
-                    ),
-                },
-            )
+            # metrics_cache.log(
+            #     EventMetric.GROUP_TOOLKIT,
+            #     "Logged In",
+            #     properties={
+            #         "authentication_method": site_i.user_authentication_method,
+            #         "authentication_experience": constants.method_resolve.get(
+            #             method_selected
+            #         ),
+            #         "authentication_interface": "console",
+            #         "authentication_renewal": isinstance(
+            #             self, ConsoleRenewSessionHandler
+            #         ),
+            #     },
+            # )
 
             return result
 

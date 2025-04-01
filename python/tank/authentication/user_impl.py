@@ -21,8 +21,10 @@ at any point.
 import json
 
 from .shotgun_wrapper import ShotgunWrapper
-from tank_vendor.shotgun_api3 import Shotgun, AuthenticationFault, ProtocolError
-from tank_vendor.six.moves import http_client
+from shotgun_api3 import Shotgun, AuthenticationFault
+
+from xmlrpc.client import ProtocolError
+import http.client as http_client
 
 from . import session_cache
 from .errors import IncompleteCredentials, UnresolvableHumanUser, UnresolvableScriptUser
@@ -30,10 +32,7 @@ from .. import LogManager
 from ..util import pickle
 from ..util import json as sgjson
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
+from shotgun_api3.lib.six import ensure_str, ensure_binary
 
 # Indirection to create ShotgunWrapper instances. Great for unit testing.
 _shotgun_instance_factory = ShotgunWrapper
@@ -61,9 +60,9 @@ class ShotgunUserImpl(object):
         # that would then cause some string data to be unicoded during
         # concatenation operations.
         if http_proxy is not None:
-            http_proxy = sgutils.ensure_str(http_proxy)
+            http_proxy = ensure_str(http_proxy)
 
-        host = sgutils.ensure_str(host)
+        host = ensure_str(host)
 
         self._host = host
         self._http_proxy = http_proxy
@@ -374,7 +373,7 @@ class SessionUser(ShotgunUserImpl):
 
         :returns: A string.
         """
-        return sgutils.ensure_str(self._login)
+        return ensure_str(self._login)
 
     @staticmethod
     def from_dict(payload):
@@ -612,7 +611,7 @@ def deserialize_user(payload):
     """
     # If the serialized payload starts with a {, we have a JSON-encoded string.
     if payload[0] in ("{", b"{"):
-        user_dict = sgjson.loads(sgutils.ensure_binary(payload))
+        user_dict = sgjson.loads(ensure_binary(payload))
     else:
         # Unpickle the dictionary
         user_dict = pickle.loads(payload)

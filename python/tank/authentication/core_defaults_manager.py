@@ -82,8 +82,3 @@ class CoreDefaultsManager(DefaultsManager):
                 return {"api_script": data["api_script"], "api_key": data["api_key"]}
         return super(CoreDefaultsManager, self).get_user_credentials()
 
-
-# For backwards compatibility.
-from .. import util
-
-util.CoreDefaultsManager = CoreDefaultsManager

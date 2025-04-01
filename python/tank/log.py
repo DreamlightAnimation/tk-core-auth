@@ -230,7 +230,6 @@ import weakref
 import uuid
 from functools import wraps
 from . import constants
-from tank_vendor import six
 
 
 class LogManager(object):
@@ -798,7 +797,7 @@ class LogManager(object):
             # Python 2 treats str as bytes, so it writes them
             # directly to disk. Putting utf8 encoding actually
             # causes problems.
-            encoding="utf8" if six.PY3 else None,
+            encoding="utf8",
         )
 
         # set the level based on global debug flag

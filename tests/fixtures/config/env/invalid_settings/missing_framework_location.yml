@@ -1,4 +1,0 @@
-engines: {}
-frameworks:
-    test_framework_v1.x.x:
-        test_setting: test

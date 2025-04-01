@@ -11,10 +11,7 @@
 Utility methods for filtering dictionaries
 """
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
+from shotgun_api3.lib.six import ensure_str
 
 
 def _ensure_contains_str(input_value, visited):
@@ -45,7 +42,7 @@ def _ensure_contains_str(input_value, visited):
     # If we've found a unicode object of a bytes string, convert them back to
     # string.
     if isinstance(input_value, (str, bytes)):
-        return sgutils.ensure_str(input_value)
+        return ensure_str(input_value)
     # If we've found a new array, we must ensure each element is
     # not a unicode object.
     elif isinstance(input_value, list) and id(input_value) not in visited:
