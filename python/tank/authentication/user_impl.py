@@ -358,6 +358,8 @@ class SessionUser(ShotgunUserImpl):
             return True
         except AuthenticationFault:
             return True
+        finally:
+            sg.close()
 
     def __repr__(self):
         """
