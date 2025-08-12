@@ -50,6 +50,19 @@ _SESSION_METADATA = "session_metadata"
 _SESSION_TOKEN = "session_token"
 _SESSION_CACHE_FILE_NAME = "authentication.yml"
 
+_encryption = (None, None)
+
+def set_encryption(encryption_suffix, encryption_key):
+    """
+    Sets the encryption name (for file suffix) and key to use for
+    encrypting the session cache file.
+    For best results, call this function whenever accessing any authentication functionality.
+
+    :param encryption_suffix: The suffix to use for the encrypted file.
+    :param encryption_key: The Fernet key to use for encrypting the file.
+    """
+    global _encryption
+    _encryption = (encryption_suffix, encryption_key)
 
 def _is_same_user(session_data, login):
     """
@@ -111,6 +124,8 @@ def _get_site_authentication_file_location(base_url):
         LocalFileStorageManager.get_site_root(base_url, LocalFileStorageManager.CACHE),
         _SESSION_CACHE_FILE_NAME,
     )
+    if _encryption[0]:
+        path += _encryption[0]
 
     if not os.path.exists(path):
 
@@ -123,6 +138,8 @@ def _get_site_authentication_file_location(base_url):
             ),
             _SESSION_CACHE_FILE_NAME,
         )
+        if _encryption[0]:
+            old_path += _encryption[0]
 
         if os.path.exists(old_path):
             path = old_path
@@ -267,6 +284,12 @@ def _insert_or_update_user(users_file, login, session_token, session_metadata):
 
     :returns: True is the users dictionary has been updated, False otherwise.
     """
+
+    if _encryption[1] and session_token:
+        from cryptography.fernet import Fernet
+        fernet = Fernet(_encryption[1])
+        session_token = fernet.encrypt(session_token.encode()).decode()
+
     # Go through all users
     for user in users_file[_USERS]:
         # If we've matched what we are looking for.
@@ -357,9 +380,15 @@ def get_session_data(base_url, login):
             if not user.get(_SESSION_TOKEN):
                 continue
 
+            session_token = user[_SESSION_TOKEN]
+            if _encryption[1] and session_token:
+                from cryptography.fernet import Fernet
+                fernet = Fernet(_encryption[1])
+                session_token = fernet.decrypt(session_token.encode()).decode()
+
             session_data = {
                 _LOGIN: user[_LOGIN],
-                _SESSION_TOKEN: user[_SESSION_TOKEN],
+                _SESSION_TOKEN: session_token,
             }
 
             # We want to keep session_metadata out of the session data if there

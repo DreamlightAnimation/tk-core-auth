@@ -1,0 +1,2 @@
+# Only required when using session_cache.set_encryption
+cryptography ~= 45.0.6
