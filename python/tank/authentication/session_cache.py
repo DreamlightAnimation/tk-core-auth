@@ -64,6 +64,33 @@ def set_encryption(encryption_suffix, encryption_key):
     global _encryption
     _encryption = (encryption_suffix, encryption_key)
 
+def compare_potentially_encrypted_session_tokens(token1, token2):
+    """
+    Compares two session tokens, which are potentially non-deterministically encrypted.
+
+    Assumes that both tokens are encrypted if `_encryption[1]` is set.
+
+    :param token1: First session token to compare.
+    :param token2: Second session token to compare.
+    :returns: True if the session tokens are equal, False otherwise.
+    """
+
+    if token1 is None or token2 is None:
+        return token1 == token2
+
+    if _encryption[1]:
+        from cryptography.fernet import Fernet
+        fernet = Fernet(_encryption[1])
+        try:
+            decrypted_token1 = fernet.decrypt(token1.encode()).decode()
+            decrypted_token2 = fernet.decrypt(token2.encode()).decode()
+            return decrypted_token1 == decrypted_token2
+        except Exception:
+            # If decryption fails, the tokens are not equal.
+            return False
+
+    return token1 == token2
+
 def _is_same_user(session_data, login):
     """
     Compares the session data's login with a given login name. The comparison
@@ -296,7 +323,7 @@ def _insert_or_update_user(users_file, login, session_token, session_metadata):
         if _is_same_user(user, login):
             result = False
             # Update and return True only if something changed.
-            if user.get(_SESSION_TOKEN) != session_token:
+            if not compare_potentially_encrypted_session_tokens(user.get(_SESSION_TOKEN), session_token):
                 user[_SESSION_TOKEN] = session_token
                 result = True
             if (
