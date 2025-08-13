@@ -21,6 +21,7 @@ at any point.
 
 from __future__ import with_statement
 import os
+import random
 import socket
 from shotgun_api3 import (
     Shotgun,
@@ -350,12 +351,18 @@ def _write_yaml_file(file_path, users_data):
     :param file_path: Where to write the users data
     :param users_data: Dictionary to write to disk.
     """
+    temp_path = file_path + ".temp" + random.randint(0, 1000000).__str__()
     old_umask = os.umask(0o077)
     try:
-        with open(file_path, "w") as users_file:
+        with open(temp_path, "w") as users_file:
             yaml.safe_dump(users_data, users_file)
+        os.replace(temp_path, file_path)  # Generally atomic
     finally:
         os.umask(old_umask)
+        if os.path.exists(temp_path):
+            # If the file was not renamed, remove it.
+            logger.warning("Failed to replace %s with %s, removing temp file." % (file_path, temp_path))
+            os.remove(temp_path)
 
 
 def delete_session_data(host, login):
