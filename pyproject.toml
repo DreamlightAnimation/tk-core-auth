@@ -1,0 +1,24 @@
+[project]
+name = "tk-core-auth"
+version = "1.0.0"
+description = "Fork of tk-core that provides authentication support for the Dreamlight Pipeline without the other bells and whistles of the original package"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# Only required when using session_cache.set_encryption
+crypto = [
+    "cryptography~=45.0.6"
+]
+
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.origin]
+url = "https://github.com/shotgunsoftware/tk-core"
+base-version = "v3.8.2"
+base-ref = "438a3fad3b8c7d282de12ebd03f2528b683194c2"
