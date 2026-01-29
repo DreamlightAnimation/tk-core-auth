@@ -10,7 +10,6 @@
 
 import http.client
 import json
-import os
 import platform
 import random
 import ssl
@@ -24,7 +23,6 @@ import tank
 import shotgun_api3
 
 from .. import LogManager
-from .. import platform as sgtk_platform
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -339,36 +337,6 @@ def _get_content_type(headers):
 
 
 def get_product_name():
-    if "TK_AUTH_PRODUCT" in os.environ:
-        return os.environ["TK_AUTH_PRODUCT"]
-
-    try:
-        engine = sgtk_platform.current_engine()
-        product = engine.host_info["name"]
-        assert product and isinstance(product, str)
-    except (AttributeError, TypeError, KeyError, AssertionError):
-        logger.debug("Unable to retrieve the host_info from the current_engine")
-        # Most likely because the engine is not initialized yet
-    else:
-        if product.lower() == "desktop":
-            product = PRODUCT_DEFAULT
-
-        if engine.host_info.get("version", "unknown") != "unknown":
-            product += " {version}".format(**engine.host_info)
-
-        return product
-
-    # current_engine is not set in SGD at login time...
-    if os.path.splitext(os.path.basename(sys.argv[0]))[0].lower() == "shotgun":
-        return PRODUCT_DEFAULT
-
-    # Flame
-    if (
-        "SHOTGUN_FLAME_CONFIGPATH" in os.environ
-        and "SHOTGUN_FLAME_VERSION" in os.environ
-    ):
-        return "Flame {SHOTGUN_FLAME_VERSION}".format(**os.environ)
-
     # Fallback to default/worst case value
     return PRODUCT_DEFAULT
 
