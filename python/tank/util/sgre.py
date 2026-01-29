@@ -13,13 +13,6 @@ Wrapper around the re module from Python. We're essentially back porting
 some functionality.
 """
 
-# Note that contrary to the sgtk.util.json module, this one is named sgre.
-# There seems to be some weird import shenanigans going on in Python 2 that
-# prevents from importing the sgtk.util.re submodule using our meta-path
-# importer. When we try, our meta-path importer is not called for our `re`
-# module and we get an ImportError. Renaming the module to anything else
-# works however, so that's what we are doing.
-
 # Import constants and functions that won't be wrapped
 from re import (
     DEBUG,
@@ -38,15 +31,11 @@ from re import (
 )
 from re import escape  # noqa import into namespace
 
-# In Python 3, regular expression metacharacters match unicode characters where in
-# Python 2 they hadn't.  To reproduce the previous behavior, Python 3 introduces a
-# new re.ASCII flag, which does not exist in Python 2.  For Python 2, we can leave
-# the re behavior as-is.
-
 # For Python 3, we'll wrap the re functions to inject the ASCII flag when necessary
 # to maintain the previous behavior.
 import re as _re
 import typing as _typing
+
 
 def _re_wrap(fn, flags_arg_position):
     def wrapper(*args, **kwargs):
@@ -73,10 +62,9 @@ def _re_wrap(fn, flags_arg_position):
 
     return wrapper
 
+
 # Since the flags arg is sometimes provided positionally, we'll specify the
-# argument's position to our wrapper so it can handle this.  These interfaces
-# all remained unchanged between Python 2 and 3, so positionally providing
-# flags does not break.
+# argument's position to our wrapper so it can handle this.
 compile = _re_wrap(_re.compile, 1)
 findall = _re_wrap(_re.findall, 2)
 match = _re_wrap(_re.match, 2)

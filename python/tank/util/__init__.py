@@ -11,8 +11,8 @@
 from .platforms import is_windows, is_linux, is_macos
 
 from . import filesystem
-from . import json
 from . import pickle
+from . import json
 
 from .local_file_storage import LocalFileStorageManager
 

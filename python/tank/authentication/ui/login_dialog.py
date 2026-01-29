@@ -20,8 +20,6 @@ for name, cls in QtGui.__dict__.items():
 from .recent_box import RecentBox
 from .aspect_preserving_label import AspectPreservingLabel
 
-from  . import resources_rc
-
 class Ui_LoginDialog(object):
     def setupUi(self, LoginDialog):
         if not LoginDialog.objectName():

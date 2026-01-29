@@ -8,25 +8,29 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import http.client
 import json
+import os
 import platform
 import random
 import ssl
 import sys
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
 import tank
 import shotgun_api3
 
-import http.client as http_client
+from .. import LogManager
+from .. import platform as sgtk_platform
 import urllib.request
 import urllib.error
 import urllib.parse
 
-from . import errors
 from ..util.shotgun import connection
-
-from .. import LogManager
+from . import errors
 
 logger = LogManager.get_logger(__name__)
 
@@ -64,9 +68,10 @@ class AuthenticationError(errors.AuthenticationError):
 
 def process(
     sg_url,
-    browser_open_callback,
+    *,
     http_proxy=None,
     product=None,
+    browser_open_callback,
     keep_waiting_callback=lambda: True,
 ):
     sg_url = connection.sanitize_url(sg_url)
@@ -118,7 +123,7 @@ def process(
 
     request = urllib.request.Request(
         urllib.parse.urljoin(sg_url, "/internal_api/app_session_request"),
-        # method="POST", # see below
+        method="POST",
         data=urllib.parse.urlencode(
             {
                 "appName": product,
@@ -129,9 +134,6 @@ def process(
             "User-Agent": user_agent,
         },
     )
-
-    # Hook for Python 2
-    request.get_method = lambda: "POST"
 
     response = http_request(url_opener, request)
     logger.debug(
@@ -149,7 +151,7 @@ def process(
         )
 
     elif response_code_major == 4:
-        if response.code == http_client.FORBIDDEN and hasattr(response, "json"):
+        if response.code == http.client.FORBIDDEN and hasattr(response, "json"):
             logger.debug(
                 "HTTP response Forbidden: {data}".format(data=response.json),
                 exc_info=getattr(response, "exception", None),
@@ -166,7 +168,7 @@ def process(
             parent_exception=response.exception,
         )
 
-    elif response.code != http_client.OK:
+    elif response.code != http.client.OK:
         raise AuthenticationError(
             "Unexpected response from the Flow Production Tracking site",
             payload=getattr(response, "json", response),
@@ -229,14 +231,11 @@ def process(
 
         request = urllib.request.Request(
             request_url,
-            # method="PUT", # see below
+            method="PUT",
             headers={
                 "User-Agent": user_agent,
             },
         )
-
-        # Hook for Python 2
-        request.get_method = lambda: "PUT"
 
         response = http_request(url_opener, request)
 
@@ -279,7 +278,7 @@ def process(
                 exc_info=getattr(response, "exception", None),
             )
 
-            if response.code == http_client.NOT_FOUND and hasattr(response, "json"):
+            if response.code == http.client.NOT_FOUND and hasattr(response, "json"):
                 raise AuthenticationError(
                     "The request has been rejected or has expired."
                 )
@@ -289,7 +288,7 @@ def process(
                 parent_exception=getattr(response, "exception", None),
             )
 
-        elif response.code != http_client.OK:
+        elif response.code != http.client.OK:
             logger.debug("Request denied: http code is: {code}".format(
                 code=response.code,
             ))
@@ -337,6 +336,41 @@ def process(
 
 def _get_content_type(headers):
     return headers.get_content_type()
+
+
+def get_product_name():
+    if "TK_AUTH_PRODUCT" in os.environ:
+        return os.environ["TK_AUTH_PRODUCT"]
+
+    try:
+        engine = sgtk_platform.current_engine()
+        product = engine.host_info["name"]
+        assert product and isinstance(product, str)
+    except (AttributeError, TypeError, KeyError, AssertionError):
+        logger.debug("Unable to retrieve the host_info from the current_engine")
+        # Most likely because the engine is not initialized yet
+    else:
+        if product.lower() == "desktop":
+            product = PRODUCT_DEFAULT
+
+        if engine.host_info.get("version", "unknown") != "unknown":
+            product += " {version}".format(**engine.host_info)
+
+        return product
+
+    # current_engine is not set in SGD at login time...
+    if os.path.splitext(os.path.basename(sys.argv[0]))[0].lower() == "shotgun":
+        return PRODUCT_DEFAULT
+
+    # Flame
+    if (
+        "SHOTGUN_FLAME_CONFIGPATH" in os.environ
+        and "SHOTGUN_FLAME_VERSION" in os.environ
+    ):
+        return "Flame {SHOTGUN_FLAME_VERSION}".format(**os.environ)
+
+    # Fallback to default/worst case value
+    return PRODUCT_DEFAULT
 
 
 def http_request(opener, req, max_attempts=4):
@@ -398,7 +432,7 @@ def http_request(opener, req, max_attempts=4):
                 parent_exception=exc,
             )
 
-    if _get_content_type(response.headers) == "application/json":
+    if response.headers.get_content_type() == "application/json":
         try:
             response.json = json.load(response)
         except json.JSONDecodeError as exc:

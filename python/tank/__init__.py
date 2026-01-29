@@ -29,11 +29,82 @@ __version__ = "HEAD"
 # configuration has its python sgtk/tank module imported directly, it will associate
 # itself with the primary config rather than with the config where the code is located.
 
+import inspect
+import os
 import sys
+import uuid
+import warnings
 
 if sys.version_info < (3, 7):
-    raise Exception("This module requires Python version 3.7 or higher.")
+    if os.environ.get("SHOTGUN_ALLOW_OLD_PYTHON", "0") != "1":
+        # This is our preferred default behavior when using an old
+        # unsupported Python version.
+        # This way, we can control where the exception is raised, and it provides a
+        # comprehensive error message rather than having users facing a random
+        # Python traceback and trying to understand this is due to using an
+        # unsupported Python version.
 
+        raise RuntimeError("This module requires Python version 3.7 or higher.")
+    warnings.warn(
+
+        "Python versions older than 3.7 are no longer supported as of January "
+        "2023. Since the SHOTGUN_ALLOW_OLD_PYTHON variable is enabled, this "
+        "module is raising a warning instead of an exception. "
+        "However, it is very likely that this module will not be able to work "
+        "on this Python version.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+elif sys.version_info < (3, 9):
+    warnings.warn(
+        "Python versions older than 3.9 are no longer supported as of March "
+        "2025 and compatibility will be discontinued after March 2026. "
+        "Please update to Python 3.11 or any other supported version.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+def __fix_tank_vendor():
+    # Older versions of Flow Production Tracking left copies of tank_vendor in sys.modules,
+    # which means we might not be importing our copy but someone else's,
+    # so strip it out!
+    if "tank_vendor" not in sys.modules:
+        return
+
+    # Figure out where our tank_vendor is.
+    our_tank_vendor = os.path.normpath(
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "tank_vendor")
+    )
+    tank_vendor = sys.modules["tank_vendor"]
+
+
+    # If the tank_vendor that is loaded is ours, we're good!
+    if os.path.normpath(inspect.getsourcefile(tank_vendor)) == our_tank_vendor:
+        return
+
+    __prefix = "_tank_vendor_swap_%s" % uuid.uuid4().hex
+
+    # We've loaded another tank_vendor, so let's strip out every single
+    # module that starts with tank_vendor
+    for name, module in list(sys.modules.items()):
+        # sys.modules can be assigned anything, even None or a number
+        # so avoid those.
+        if isinstance(name, str) is False or name.startswith("tank_vendor") is False:
+            continue
+
+        # Move tank_vendor out of the way instead of simply removing it from sys.modules.
+        # If the modules are still in use, removing them from sys.modules seems to do
+        # some cleanup of the modules themselves, which we do not want. For example,
+        # if a Shotgun connection is still used from the old tank_vendor after the swap
+        # happened, then the global methods from shotgun.py like _translate_filters
+        # will turn to None. It's all a bit mysterious to be honest, but considering we're
+        # also following the same pattern in bootstrap/import_handler.py, it seems
+        # like this is the safe way to fix this.
+        sys.modules[__prefix + name] = sys.modules.pop(name)
+
+
+__fix_tank_vendor()
+
+del __fix_tank_vendor
 ########################################################################
 
 # first import the log manager since a lot of modules require this.

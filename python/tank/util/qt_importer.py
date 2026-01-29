@@ -66,13 +66,6 @@ class QtImporter(object):
         return self._modules["QtGui"] if self._modules else None
 
     @property
-    def QtWebKit(self):
-        """
-        :returns: QtWebKit module, if available.
-        """
-        return self._modules["QtWebKit"] if self._modules else None
-
-    @property
     def QtNetwork(self):
         """
         :returns: QtNetwork module, if available.
@@ -85,13 +78,6 @@ class QtImporter(object):
         :returns: QtWebEngineWidgets module, if available.
         """
         return self._modules["QtWebEngineWidgets"] if self._modules else None
-
-    @property
-    def QtWebEngineCore(self):
-        """
-        :returns: QtWebEngineCore module, if available.
-        """
-        return self._modules["QtWebEngineCore"] if self._modules else None
 
     @property
     def binding(self):
@@ -155,14 +141,13 @@ class QtImporter(object):
 
         :returns: The module loaded, or None if it could not be loaded.
         """
-        module = None
+
         try:
             module = __import__(parent_module_name, globals(), locals(), [module_name])
-            module = getattr(module, module_name)
+            return getattr(module, module_name)
         except Exception as e:
             logger.debug("Unable to import module '%s': %s", module_name, e)
-            pass
-        return module
+
 
     def _import_pyside2(self):
         """
@@ -196,8 +181,6 @@ class QtImporter(object):
             "QtTest",
             "QtUiTools",
             "QtWebChannel",
-            "QtWebKit",
-            "QtWebKitWidgets",
             "QtWidgets",
             "QtWebSockets",
             "QtXml",
@@ -266,6 +249,12 @@ class QtImporter(object):
             import shiboken6
 
         sub_modules = pkgutil.iter_modules(PySide6.__path__)
+
+        if "SHOTGUN_SKIP_QTWEBENGINEWIDGETS_IMPORT" in os.environ:
+            sub_modules = [
+                m for m in sub_modules if not m.name.startswith("QtWebEngine")
+            ]
+
         modules_dict = {}
         # Add shiboken6 to the modules dict
         modules_dict["shiboken"] = shiboken6

@@ -20,5 +20,5 @@ where = ["python"]
 
 [tool.origin]
 url = "https://github.com/shotgunsoftware/tk-core"
-base-version = "v3.8.2"
-base-ref = "438a3fad3b8c7d282de12ebd03f2528b683194c2"
+base-version = "v0.23.5"
+base-ref = "3fed2c4b07e07bc1efbe60427d8e218b52c6669b"

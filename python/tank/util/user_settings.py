@@ -12,8 +12,8 @@
 User settings management.
 """
 
-import os
 import configparser
+import os
 
 from .local_file_storage import LocalFileStorageManager
 from .errors import EnvironmentVariableFileLookupError, TankError
